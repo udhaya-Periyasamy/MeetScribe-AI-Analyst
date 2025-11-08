@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeetScribe - AI Meeting Analysis</title>
+    
+    <style>
+        :root {
+            --background-color: #121212;
+            --surface-color: #1e1e1e;
+            --primary-color: #bb86fc;
+            --primary-hover: #a255ff;
+            --secondary-color: #03dac6;
+            --text-color: #e0e0e0;
+            --text-muted: #888;
+            --border-color: #333;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: grid;
+            place-items: center;
+            min-height: 100vh;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        main {
+            width: 100%;
+            max-width: 700px;
+            padding: 2.5rem;
+            background: var(--surface-color);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-top: 0;
+            font-weight: 700;
+        }
+
+        h1 span {
+            font-weight: 300;
+            color: var(--secondary-color);
+        }
+
+        p {
+            text-align: center;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        input[type="file"] {
+            font-size: 1rem;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            text-align: center;
+            color: var(--text-muted);
+            background-color: var(--background-color);
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+        
+        input[type="file"]:hover {
+            border-color: var(--primary-color);
+            background-color: var(--surface-color);
+        }
+
+        input[type="file"]::file-selector-button {
+            background-color: var(--primary-color);
+            color: #000;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-right: 1rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        
+        input[type="file"]::file-selector-button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .button {
+            background: var(--primary-color);
+            color: #000;
+            border: none;
+            padding: 1rem;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, box-shadow 0.2s;
+            text-align: center;
+            text-decoration: none;
+        }
+        
+        .button:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 4px 15px rgba(187, 134, 252, 0.2);
+        }
+
+        .button:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        #download-pdf-button {
+            display: none; 
+            background-color: var(--secondary-color);
+            margin-top: 1.5rem;
+        }
+
+        #download-pdf-button:hover {
+            background-color: #01b0a1;
+            box-shadow: 0 4px 15px rgba(3, 218, 198, 0.2);
+        }
+
+        #loader {
+            display: none;
+            text-align: center;
+            margin: 2rem 0;
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+
+        #results {
+            display: none;
+            border-top: 2px solid var(--border-color);
+            margin-top: 2rem;
+            padding-top: 1rem;
+        }
+
+        h2 {
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+            color: var(--secondary-color);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        #results div {
+            background: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        h3 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        #results ul {
+            padding-left: 20px;
+            list-style: "✅ ";
+        }
+
+        #results li {
+            margin-bottom: 0.75rem;
+            line-height: 1.5;
+        }
+        
+        #results li strong {
+            color: #fff;
+        }
+
+        #error {
+            display: none;
+            color: #f794a3;
+            background-color: #3e2227;
+            border: 1px solid #f25270;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            text-align: left;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>MeetScribe <span>AI Analyst</span> 🎙️</h1>
+        
+      
+        <p>Upload your meeting video. It will analyze the video, audio, and slides to generate a complete, professional report.</p>
+        
+        <form id="upload-form">
+            <input type="file" id="video-file" name="video" accept="video/*" required>
+            <button type="button" id="submit-button" class="button">Analyze Meeting</button>
+        </form>
+
+        <div id="loader">
+            <p>Uploading and analyzing...<br>This may take several minutes.</p>
+        </div>
+        
+        <div id="error"></div>
+
+        <div id="results">
+            <h2>Analysis Complete</h2>
+            
+            <a id="download-pdf-button" class="button" href="#" download="MeetScribe_Report.pdf">
+                Download PDF Report
+            </a>
+            
+            <div id="summary-box">
+                <h3>Summary</h3>
+                <p id="summary" style="text-align: left;"></p>
+            </div>
+            
+            <div id="sentiment-box">
+                <h3>Sentiment</h3>
+                <p id="sentiment" style="text-align: left;"></p>
+            </div>
+
+            <div id="actions-box">
+                <h3>Action Items</h3>
+                <ul id="action-items"></ul>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const form = document.getElementById('upload-form');
+        const submitButton = document.getElementById('submit-button');
+        const videoFileInput = document.getElementById('video-file');
+        const loader = document.getElementById('loader');
+        const resultsDiv = document.getElementById('results');
+        const errorDiv = document.getElementById('error');
+        const downloadButton = document.getElementById('download-pdf-button');
+
+        submitButton.addEventListener('click', async () => {
+            
+            console.log("Analyze button clicked!");
+            
+            const file = videoFileInput.files[0];
+            
+            if (!file) {
+                console.log("No file selected.");
+                showError("Please select a video file first.");
+                return;
+            }
+            
+            console.log("Showing loader, disabling button...");
+            loader.style.display = 'block';
+            resultsDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            downloadButton.style.display = 'none';
+            submitButton.disabled = true;
+            submitButton.innerText = 'Analyzing...';
+            
+            const formData = new FormData();
+            formData.append('video', file); 
+
+            try {
+                console.log("Sending file to /analyze...");
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                console.log("Received response from server.");
+                const data = await response.json();
+
+                if (response.ok) {
+                    console.log("Response OK. Displaying results.");
+                    displayResults(data);
+                } else {
+                    console.error("Server returned an error:", data.error);
+                    throw new Error(data.error || 'An unknown error occurred.');
+                }
+
+            } catch (error) {
+                console.error("Fetch failed:", error.message);
+                showError(error.message);
+            } finally {
+                console.log("Hiding loader, re-enabling button.");
+                loader.style.display = 'none';
+                submitButton.disabled = false;
+                submitButton.innerText = 'Analyze Meeting';
+            }
+        });
+
+        function displayResults(data) {
+            resultsDiv.style.display = 'block';
+            errorDiv.style.display = 'none';
+
+            /*
+            ✅ --- THIS IS THE FIX --- ✅
+            The error was here. Your `app.py` sends back JSON like:
+            { "report_data": { ... }, "pdf_data": "..." }
+
+            This new code correctly looks inside "report_data" to find "summary".
+            */
+            const report = data.report_data; // Get the nested report object
+            const pdfData = data.pdf_data; // Get the PDF data
+
+            // Check if the report object exists before trying to read it
+            if (report) {
+                document.getElementById('summary').innerText = report.summary;
+                document.getElementById('sentiment').innerText = report.sentiment;
+
+                const actionList = document.getElementById('action-items');
+                actionList.innerHTML = '';
+                
+                if (report.action_items && report.action_items.length > 0) {
+                    report.action_items.forEach(item => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<strong>${item.task}</strong><br>(Owner: ${item.owner}, Deadline: ${item.deadline})`;
+                        actionList.appendChild(li);
+                    });
+                } else {
+                    actionList.innerHTML = "<li>No action items were identified.</li>";
+                }
+            } else {
+                // This will show if the 'report_data' key is missing
+                showError("Error: Received invalid data structure from server.");
+                return;
+            }
+            
+            // This part handles the PDF
+            if (pdfData) {
+                downloadButton.href = `data:application/pdf;base64,${pdfData}`;
+                downloadButton.style.display = 'block'; 
+            } else {
+                downloadButton.style.display = 'none';
+            }
+        }
+        
+        function showError(message) {
+            resultsDiv.style.display = 'none';
+            errorDiv.style.display = 'block';
+            errorDiv.innerText = `Error: ${message}`;
+        }
+    </script>
+</body>
+</html>

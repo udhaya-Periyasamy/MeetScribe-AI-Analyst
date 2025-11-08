@@ -1,0 +1,9 @@
+# Ignore the API key file
+.env
+
+# Ignore the video files you uploaded for testing
+uploads/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
